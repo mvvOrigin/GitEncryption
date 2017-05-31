@@ -1,11 +1,7 @@
 <layout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools">
-    <data>
-        <variable
-            name="presenter"
-            type="com.vitaliy.encryption.ui.RepositoryContract.Presenter"/>
-    </data>
+
 
     <android.support.constraint.ConstraintLayout
         android:layout_width="match_parent"
@@ -13,7 +9,6 @@
         tools:context=".ui.RepositoryActivity">
 
         <Button
-            android:onClick="@{() -> presenter.getRepositories()}"
             android:id="@+id/btnLoadRepos"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"

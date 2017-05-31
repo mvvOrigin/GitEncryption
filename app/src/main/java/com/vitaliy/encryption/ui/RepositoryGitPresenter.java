@@ -17,7 +17,7 @@ import rx.schedulers.Schedulers;
  * Created by vitaliy on 25.05.17.
  */
 
-public class RepositoryPresenter implements RepositoryContract.Presenter {
+public class RepositoryGitPresenter implements RepositoryContract.GitPresenter {
     @Inject
     GitApi gitApi;
     @Inject
@@ -26,7 +26,7 @@ public class RepositoryPresenter implements RepositoryContract.Presenter {
     DBManager dbManager;
     private final RepositoryContract.View view;
 
-    public RepositoryPresenter(RepositoryContract.View view) {
+    public RepositoryGitPresenter(RepositoryContract.View view) {
         this.view = view;
         EncryptionApplication.getAppComponent().inject(this);
     }

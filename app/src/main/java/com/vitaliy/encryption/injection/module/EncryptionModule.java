@@ -2,7 +2,6 @@ package com.vitaliy.encryption.injection.module;
 
 import com.google.gson.Gson;
 import com.vitaliy.encryption.encryption.Encryption;
-import com.vitaliy.encryption.encryption.EncryptionImpl;
 
 import java.io.IOException;
 import java.security.KeyStore;
@@ -40,6 +39,6 @@ public class EncryptionModule {
     @Singleton
     @Provides
     Encryption providesEncryption(Gson gson, KeyStore keyStore) {
-        return new EncryptionImpl(gson, keyStore);
+        return new Encryption(gson, keyStore);
     }
 }

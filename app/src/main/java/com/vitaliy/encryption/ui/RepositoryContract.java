@@ -1,5 +1,7 @@
 package com.vitaliy.encryption.ui;
 
+import com.vitaliy.data.TouchData;
+
 /**
  * Created by vitaliy on 25.05.17.
  */
@@ -11,7 +13,11 @@ public interface RepositoryContract {
         void setProgressVisible(boolean enabled);
     }
 
-    interface Presenter {
+    interface GitPresenter {
         void getRepositories();
+    }
+
+    interface TouchPresenter {
+        void sendTouchData(TouchData data);
     }
 }
