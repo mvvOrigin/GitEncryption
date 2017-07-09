@@ -6,10 +6,8 @@ import android.util.Base64;
 
 import com.google.gson.Gson;
 import com.scottyab.aescrypt.AESCrypt;
-import com.vitaliy.data.TouchData;
 
 import java.math.BigInteger;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.security.InvalidAlgorithmParameterException;
@@ -44,32 +42,29 @@ import static com.vitaliy.encryption.injection.module.EncryptionModule.KEYSTORE_
 
 public class Encryption {
     private static final String AES_KEY_ALIAS = "AES_KEY_ALIAS";
-    private static final int IV_LENGTH = 16;
+    private static final byte[] IV = new byte[12];
     private static final int GCM_TAG_LENGTH = 128;
     private static final String AES_CIPHER = KeyProperties.KEY_ALGORITHM_AES + "/" +
             KeyProperties.BLOCK_MODE_GCM + "/" + KeyProperties.ENCRYPTION_PADDING_NONE;
     private final Gson gson;
     private final KeyStore keyStore;
 
-    private static final int AES_KEY_SIZE = 256;
-    private static final int RSA_KEY_SIZE = 2048;
-    private static final String ALGORITHM_AES = KeyProperties.KEY_ALGORITHM_AES;
     private static final String ALGORITHM_RSA = KeyProperties.KEY_ALGORITHM_RSA;
+    private static final String ALGORITHM_AES = KeyProperties.KEY_ALGORITHM_AES;
     private static final String RSA_ECB_PKCS1_PADDING = "RSA/ECB/PKCS1Padding";
-    private static final Charset CHARSET = StandardCharsets.UTF_8;
+    private static final int RSA_KEY_LENGTH = 2048;
+    private static final int AES_KEY_LENGTH = 256;
 
-    private static byte[] encryptedAES = new byte[0];
-    private static byte[] encryptedIV = new byte[0];
     private PublicKey publicKey;
     private PrivateKey privateKey;
-    private byte[] originalIV = new byte[0];
+    private SecretKeySpec randomSecureKey;
 
     public Encryption(Gson gson, KeyStore keyStore) {
         this.gson = gson;
         this.keyStore = keyStore;
         generateAESKeyAndSaveToKeystore();
-        originalIV = generateRandomIV();
-        encryptedIV = encryptWithRSA(originalIV);
+        generateRandomIV();
+        byte[] en = encryptWithRSA(IV);
     }
 
     private void generateAESKeyAndSaveToKeystore() {
@@ -121,10 +116,10 @@ public class Encryption {
     }
 
     public String encrypt(String data) {
-        try {
+        try{
             final byte[] message = gson.toJson(data).getBytes(StandardCharsets.UTF_8);
             final Cipher cipher = Cipher.getInstance(AES_CIPHER);
-            cipher.init(Cipher.ENCRYPT_MODE, getAESKeyFromKeystore(), new GCMParameterSpec(GCM_TAG_LENGTH, originalIV));
+            cipher.init(Cipher.ENCRYPT_MODE, getAESKeyFromKeystore(), new GCMParameterSpec(GCM_TAG_LENGTH, IV));
             byte[] encodedBytes = cipher.doFinal(message);
             return Base64.encodeToString(encodedBytes, Base64.DEFAULT);
         } catch (NoSuchAlgorithmException | InvalidKeyException | InvalidAlgorithmParameterException | NoSuchPaddingException | BadPaddingException | IllegalBlockSizeException e) {
@@ -137,7 +132,7 @@ public class Encryption {
         try {
             final byte[] base64EncryptedMessage = Base64.decode(data, Base64.NO_WRAP);
             final Cipher cipher = Cipher.getInstance(AES_CIPHER);
-            cipher.init(Cipher.DECRYPT_MODE, getAESKeyFromKeystore(), new GCMParameterSpec(GCM_TAG_LENGTH, originalIV));
+            cipher.init(Cipher.DECRYPT_MODE, getAESKeyFromKeystore(), new GCMParameterSpec(GCM_TAG_LENGTH, IV));
             final byte[] mDecrypt = cipher.doFinal(base64EncryptedMessage);
             return new String(mDecrypt, StandardCharsets.UTF_8);
         } catch (NoSuchAlgorithmException | InvalidKeyException | InvalidAlgorithmParameterException | NoSuchPaddingException | BadPaddingException | IllegalBlockSizeException e) {
@@ -146,85 +141,81 @@ public class Encryption {
         }
     }
 
-    /**
-     * Assignment Second Part
-     */
+    private void generateRandomIV() {
+        new Random().nextBytes(IV);
+    }
 
-    public String encryptTouchData(TouchData touchData) {
+    private static byte[] encryptedAES = new byte[0];
+
+    public String encryptTouchData(String data) {
         try {
-            byte[] message = gson.toJson(touchData).getBytes(CHARSET);
-            byte[] encryptedMsg = AESCrypt.encrypt(getRandomSecureKey(), originalIV, message);
-            return Base64.encodeToString(encryptedMsg, Base64.NO_WRAP);
+            randomSecureKey = getRandomSecureKey();
+            byte[] encrypted = AESCrypt.encrypt(randomSecureKey, IV, data.getBytes(StandardCharsets.UTF_8));
+            return Base64.encodeToString(encrypted, Base64.NO_WRAP);
         } catch (GeneralSecurityException e) {
             e.printStackTrace();
             return null;
         }
     }
 
-    public String decryptTouchData(String message) {
-        byte[] base64EncryptedMessage = Base64.decode(message, Base64.NO_WRAP);
+    public String decryptTouchData(String data) {
         try {
-            SecretKeySpec key = new SecretKeySpec(decryptWithRSA(encryptedAES), 0, IV_LENGTH, ALGORITHM_AES);
-            byte[] decrypt = AESCrypt.decrypt(key, originalIV, base64EncryptedMessage);
-            return new String(decrypt, StandardCharsets.UTF_8);
+            byte[] bytes = Base64.decode(data, Base64.NO_WRAP);
+            SecretKeySpec key = new SecretKeySpec(decriptAESWithRSA(), 0, 12, ALGORITHM_AES);
+            byte[] decrypted = AESCrypt.decrypt(key, IV, bytes);
+            return new String(decrypted, StandardCharsets.UTF_8);
         } catch (GeneralSecurityException e) {
             e.printStackTrace();
-            return "";
+            return null;
         }
     }
 
     private SecretKeySpec getRandomSecureKey() {
         try {
-            KeyGenerator keyGen = KeyGenerator.getInstance(ALGORITHM_AES);
-            keyGen.init(AES_KEY_SIZE);
-            byte[] randomSecureKey = keyGen.generateKey().getEncoded();
-            encryptedAES = encryptWithRSA(randomSecureKey);
-            return new SecretKeySpec(randomSecureKey, 0, IV_LENGTH, ALGORITHM_AES);
+            KeyGenerator generator = KeyGenerator.getInstance(ALGORITHM_AES);
+            generator.init(AES_KEY_LENGTH);
+            byte[] random  = generator.generateKey().getEncoded();
+            encryptedAES = encryptWithRSA(random);
+            return new SecretKeySpec(random, 0, 12, ALGORITHM_AES);
         } catch (NoSuchAlgorithmException e) {
             e.printStackTrace();
             return null;
         }
     }
 
-    private byte[] generateRandomIV() {
-        byte[] bytes = new byte[IV_LENGTH];
-        new Random().nextBytes(bytes);
-        return bytes;
+    public String getEncryptedAES(){
+        return new String(encryptedAES);
     }
 
-    public byte[] encryptWithRSA(byte[] bytes) {
+    public String getDecryptedAES(){
+        byte[] key = decriptAESWithRSA();
+        return Base64.encodeToString(key, Base64.NO_WRAP);
+    }
+
+    private byte[] encryptWithRSA(byte[] key) {
         try {
-            KeyPairGenerator kpg = KeyPairGenerator.getInstance(ALGORITHM_RSA);
-            kpg.initialize(RSA_KEY_SIZE);
-            KeyPair keyPair = kpg.generateKeyPair();
-            privateKey = keyPair.getPrivate();
-            publicKey = keyPair.getPublic();
+            KeyPairGenerator generator = KeyPairGenerator.getInstance(ALGORITHM_RSA);
+            generator.initialize(RSA_KEY_LENGTH);
+            KeyPair pair = generator.generateKeyPair();
+            publicKey = pair.getPublic();
+            privateKey = pair.getPrivate();
             Cipher cipher = Cipher.getInstance(RSA_ECB_PKCS1_PADDING);
             cipher.init(Cipher.ENCRYPT_MODE, publicKey);
-            return cipher.doFinal(bytes);
-        } catch (NoSuchAlgorithmException | InvalidKeyException | NoSuchPaddingException | IllegalBlockSizeException | BadPaddingException e) {
+            return cipher.doFinal(key);
+        } catch (NoSuchAlgorithmException | BadPaddingException | IllegalBlockSizeException | NoSuchPaddingException | InvalidKeyException e) {
             e.printStackTrace();
             return null;
         }
     }
 
-    public byte[] decryptWithRSA(byte[] bytes) {
+    private byte[] decriptAESWithRSA() {
         try {
             Cipher cipher = Cipher.getInstance(RSA_ECB_PKCS1_PADDING);
             cipher.init(Cipher.DECRYPT_MODE, privateKey);
-            return cipher.doFinal(bytes);
-        } catch (NoSuchAlgorithmException | InvalidKeyException | NoSuchPaddingException | IllegalBlockSizeException | BadPaddingException e) {
+            return cipher.doFinal(encryptedAES);
+        } catch (NoSuchAlgorithmException | InvalidKeyException | NoSuchPaddingException | BadPaddingException | IllegalBlockSizeException e) {
             e.printStackTrace();
             return null;
         }
     }
-
-    public String getEncryptedAES() {
-        return Base64.encodeToString(encryptedAES, Base64.NO_WRAP);
-    }
-
-    public String getDencryptedAES() {
-        return Base64.encodeToString(decryptWithRSA(encryptedAES), Base64.NO_WRAP);
-    }
-
 }
