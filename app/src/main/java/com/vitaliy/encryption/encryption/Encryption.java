@@ -56,6 +56,8 @@ public class Encryption {
     private static final int AES_KEY_LENGTH = 256;
 
     private PublicKey publicKey;
+
+
     private PrivateKey privateKey;
     private SecretKeySpec randomSecureKey;
 
