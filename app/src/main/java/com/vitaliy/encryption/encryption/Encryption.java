@@ -155,7 +155,6 @@ public class Encryption {
         } catch (GeneralSecurityException e) {
             e.printStackTrace();
 
-
             return null;
         }
     }
