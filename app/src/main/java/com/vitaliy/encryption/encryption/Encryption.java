@@ -166,6 +166,7 @@ public class Encryption {
             return new String(decrypted, StandardCharsets.UTF_8);
         } catch (GeneralSecurityException e) {
             e.printStackTrace();
+
             return null;
         }
     }
