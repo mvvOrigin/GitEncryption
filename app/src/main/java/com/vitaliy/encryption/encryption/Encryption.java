@@ -154,6 +154,8 @@ public class Encryption {
             return Base64.encodeToString(encrypted, Base64.NO_WRAP);
         } catch (GeneralSecurityException e) {
             e.printStackTrace();
+
+
             return null;
         }
     }
